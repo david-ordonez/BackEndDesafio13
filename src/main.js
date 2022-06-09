@@ -1,7 +1,7 @@
 import express from "express";
 import session from "express-session";
 import passport from "passport";
-import LocalStrategy from "passport-local";
+
 import MongoStore from "connect-mongo";
 import { Server as HttpServer } from "http";
 import { Server as Socket } from "socket.io";
@@ -35,68 +35,6 @@ io.on("connection", async (socket) => {
 //--------------------------------------------
 // configuro el servidor
 
-passport.use('login', new LocalStrategy(
-  (username, password, done) => {
-      User.findOne({ username }, (err, user) => {
-          if (err)
-              return done(err);
-          if (!user) {
-              console.log('User not found ' + username);
-              return done(null, false);
-          }
-          if (!isValidPassword(user, password)) {
-              return done(null, false);
-          }
-
-          return done(null, user);
-      });
-  }
-));
-
-passport.use('signup', new LocalStrategy({
-  passReqToCallback: true
-}, (req, username, password, done) => {
-  User.findOne({ 'username': username }, (err, user) => {
-      if (err) {
-          return done(err);
-      }
-      if (user) {
-          return done(null, false);
-      }
-
-      const newUser = {
-          username: username,
-          password: createHash(password)
-      }
-
-      User.create(newUser, (err, userWithId) => {
-          if (err) {
-              return done(err);
-          }
-          return done(null, userWithId);
-      })
-  })
-}));
-
-passport.serializeUser((user, done) => {
-  done(null, user._id);
-})
-
-passport.deserializeUser((id, done) => {
-  User.findById(id, done);
-});
-
-function isValidPassword(user, password) {
-  return bCrypt.compareSync(password, user.password);
-}
-
-function createHash(password) {
-  return bCrypt.hashSync(password, bCrypt.genSaltSync(10), null);
-}
-
-app.use(passport.initialize());
-app.use(passport.session());
-
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static("public"));
@@ -114,6 +52,9 @@ app.use(
     },
   })
 );
+
+app.use(passport.initialize());
+app.use(passport.session());
 
 //--------------------------------------------
 // rutas del servidor API REST
